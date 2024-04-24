@@ -2,3 +2,7 @@
 *.txt
 __pycache__
 *.pyc
+*.spec.pt
+*.tar
+*.csv
+*.json

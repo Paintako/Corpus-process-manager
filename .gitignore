@@ -6,3 +6,5 @@ __pycache__
 *.tar
 *.csv
 *.json
+*.mp4
+*.flac

@@ -9,3 +9,8 @@ __pycache__
 *.mp4
 *.flac
 *.npy
+*.TextGrid
+*.lab
+*.zip
+*.jpg
+*.png

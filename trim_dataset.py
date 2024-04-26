@@ -70,7 +70,7 @@ class trimProcesser:
                 f.write(line)
 
 
-        with open(f'./dataset/mixed_5_val.txt', 'r' , encoding='utf8') as f:
+        with open(f'./dataset/mixed_5_test.txt', 'r' , encoding='utf8') as f:
             lines_old = f.readlines()
             lines = lines_old.copy()  # 使用copy()创建一个新的列表
             lines_to_remove = []  # 创建一个存储要删除行的列表
@@ -88,14 +88,14 @@ class trimProcesser:
                 lines.remove(line)  # 从lines中删除要删除的行
             
         for line in lines:
-            with open(f'./dataset/mixed_5_val_new.txt', 'a', encoding='utf8') as f:
+            with open(f'./dataset/mixed_5_test_new.txt', 'a', encoding='utf8') as f:
                 f.write(line)
 
 
     def read_file(self):
         dataset_files = [
             'mixed_5_train.txt',
-            'mixed_5_val.txt'
+            'mixed_5_test.txt'
         ]
         for file in dataset_files:
             with open(f'./dataset/{file}', 'r', encoding='utf8') as f:

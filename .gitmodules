@@ -1,0 +1,3 @@
+[submodule "tools/resemble-enhance"]
+	path = tools/resemble-enhance
+	url = https://github.com/resemble-ai/resemble-enhance.git

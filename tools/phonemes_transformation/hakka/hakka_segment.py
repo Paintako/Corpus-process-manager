@@ -13,7 +13,7 @@ class hakka_frontend():
         # print(f'orig_initials = {orig_initials}, orig_finals = {orig_finals}')
         for c, v in zip(orig_initials, orig_finals):
             if c and c not in self.punc:
-                initials.append(f'{c}2 ')
+                initials.append(f'{c}')
             else:
                 initials.append(c)
             finals.append(f'{v} ')
@@ -70,13 +70,13 @@ class hakka_frontend():
         if '-' in sentence:
             sentence = sentence.replace('-', '')    
         phonemes = self._g2p(sentence) 
-        result = ''
+        r = ''
         for p in phonemes:
-            if not '-' in p:
-                result += f'{p} '
+            if not p.endswith('-'):
+                r = f'{r}{p}'
             else:
-                result += f'{p}'  
-        return result.replace("  "," ").strip().replace("  "," ")
+                r = f'{r} {p}'
+        return remove_hak(r.replace("  "," ").strip().replace("  "," "))
 
 def remove_hak(input_content):
     result = ''

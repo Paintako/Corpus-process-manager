@@ -35,12 +35,12 @@ def get_initials_finals(word: str) -> List[List[str]]:
                 continue
         
         if c and c not in punc:
-            initials.append(c+'1 ')
+            initials.append(c)
             # initials.append(c + v[-1] +' ')
         else:
             initials.append(c)
         if v not in punc:
-            finals.append(v[:-1]+'1'+v[-1])
+            finals.append(v)
         else:
             finals.append(v)
 

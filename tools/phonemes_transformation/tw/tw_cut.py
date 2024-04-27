@@ -14,12 +14,12 @@ class tw_frontend():
         orig_initials, orig_finals = self._cut_vowel(sentence)
         for c, v in zip(orig_initials, orig_finals):
             if c and c not in self.punc:
-                initials.append(f'{c}0 ')
+                initials.append(f'{c}')
             else:
                 initials.append(c)
                 continue
 
-            finals.append(f'{v[:-1]}0{v[-1]} ')
+            finals.append(f'{v} ')
             
             
     

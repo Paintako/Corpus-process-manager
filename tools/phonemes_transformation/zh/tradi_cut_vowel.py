@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
-from ch2ctl import askForService as ch2ctl
+from .ch2ctl import askForService as ch2ctl
 from typing import List
 import re
 from opencc import OpenCC
@@ -59,10 +59,10 @@ class Frontend():
 
         for c, v in zip(orig_initials, orig_finals):
             if c and c not in self.punc:
-                initials.append(c + '4 ')
+                initials.append(c)
             else:
                 initials.append(c)
-            finals.append(v[:-1]+'4'+v[-1])
+            finals.append(v)
 
         return initials, finals
         
@@ -91,7 +91,7 @@ class Frontend():
                 phones.append('sil')
             if v and v not in self.punc:
                 phones.append(v)
-
+        print(phones)
         phones_list.append(phones)
         if merge_sentences:
             merge_list = sum(phones_list, [])
@@ -119,10 +119,10 @@ class Frontend():
         phonemes = phonemes[0]
         result = ''
         for p in phonemes:
-            if not p.endswith('-'):
-                result += p + ' '
+            if not p[-1].isdigit() and p != 'sil':
+                result += p + ''
             else:
-                result += p
+                result += p + ' '
         result = result.replace("  "," ").strip()
         result = result.replace(",", "sil ")
         return result
@@ -130,8 +130,6 @@ class Frontend():
 
 if __name__ == "__main__":
     zh = Frontend(ctlornot=False)
-    while(1):
-        text = input("Enter a sentence: ")
-        print(zh.get_phonemes(text))
-    # text = 'tscioou4 srir4 tsron1 to0 hon3 nan2 uan2 tschyeen2 pu4 toong3'
-    # print(zh._get_initials_finals(text))
+    sentence = "你好，我是中文前端"
+    phonemes = zh.get_phonemes(sentence)
+    print(phonemes)

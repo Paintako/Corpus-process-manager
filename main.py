@@ -392,7 +392,7 @@ class DatasetProcesser:
                 files = train_files if run == 'train' else test_files
                 for file in files:
                     with open(f'{self.cwd}/{dataset_suffix}/{label}_{run}.txt', 'a') as f:
-                        if '/tw/' in path:
+                        if '/tw/' in path or '/en/' in path or '/indonesian/' in path:
                             txt_file_path = f'{input_path}/{file.replace(".wav", ".json")}'
                         else:
                             txt_file_path = f'{input_path}/{file.replace(".wav", ".txt")}'
@@ -413,6 +413,7 @@ class DatasetProcesser:
                                     if '/tw/' in path:
                                         txt_content = json.load(txt)['tailou']
                                         txt_content, status = self.textProcess.tw_cut.get_phonemes(txt_content)
+                                        txt_content = txt_content.replace("sil", "").strip()
                                         if not status:
                                             continue
                                         f.write(
@@ -429,19 +430,19 @@ class DatasetProcesser:
                                         )
 
                                     if '/indonesian' in path:
-                                        txt_content = txt.readlines()[0].strip().lower()
-                                        txt_content = self.textProcess.id_cut(txt_content)
+                                        # txt_content = txt.readlines()[0].strip().lower()
+                                        # txt_content = self.textProcess.id_cut(txt_content)
+                                        txt_content = json.load(txt)['g2p'].lower()
                                         f.write(
                                             f'{cwd}/{folder}/{file}|{starting_speaker_id}|ID|{txt_content}\n'
                                         )
 
                         else:
                             with open(txt_file_path, 'r') as txt:
-                                lines = txt.readlines()
-                            result = self.textProcess.en_cut(lines[0])
+                                txt_content = json.load(txt)['phonemes'].lower()
                             with open(txt_file_path, 'r') as txt:
                                 f.write(
-                                    f'{cwd}/{folder}/{file}|{starting_speaker_id}|EN|{result}\n'
+                                    f'{cwd}/{folder}/{file}|{starting_speaker_id}|EN|{txt_content}\n'
                                 )
             with open(f'{self.cwd}/{dataset_suffix}/{label}_id.txt', 'a') as f:
                 f.write(f'{starting_speaker_id}|{folder}\n')
@@ -464,8 +465,8 @@ if __name__ == "__main__":
         f'corpus/tw/corpus/neutral',
         f'corpus/zh/corpus/azure',
         # f'corpus/zh/corpus/opendataset/MAGIC',
-        # f'corpus/en/corpus/vctk/corpus',
-        # f'corpus/indonesian/corpus/azure',
+        f'corpus/en/corpus/vctk/corpus',
+        f'corpus/indonesian/corpus/azure',
         f'corpus/trandition_zh/azure_synthesis'
         # f'/mnt/Linux_DATA/synthesis/corpus/22k/corpus/genshin/clean'
     ]

@@ -14,15 +14,15 @@ class tw_frontend():
         orig_initials, orig_finals = self._cut_vowel(sentence)
         for c, v in zip(orig_initials, orig_finals):
             if c and c not in self.punc:
-                initials.append(f'{c}')
+                initials.append(c)
             else:
                 initials.append(c)
-                continue
-
-            finals.append(f'{v} ')
+            if v not in self.punc:
+                finals.append(v)
+            else:
+                finals.append(v)
             
-            
-    
+        
         return initials, finals, True
 
     def _g2p(self, sentences: List[str]) -> Tuple[List[List[str]], bool]:
@@ -75,10 +75,10 @@ class tw_frontend():
             return [], False
         r = ''
         for p in phonemes:
-            if not p.endswith('-'):
+            if not p[-1].isdigit():
                 r = f'{r}{p}'
-            else:
-                r = f'{r} {p}'
+                continue
+            r = f'{r}{p} '
         r = r.strip()
         
         return r, True

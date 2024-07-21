@@ -46,7 +46,9 @@ class textProcess:
 
         self.beji_cut = beji_cut_vowel.cut_vowel
         self.tradi_cut = tradi_cut_vowel.Frontend(ctlornot=True)
-        self.hakka_frontend = hakka_segment.hakka_frontend()
+        self.tradi_cut_noneCTL = tradi_cut_vowel.Frontend(ctlornot=False)
+        self.hailu_hakka_frontend = hakka_segment.hakka_frontend(language_id=3) # 海陸腔
+        self.sixsian_hakka_frontend = hakka_segment.hakka_frontend(language_id=2) # 四縣腔
         self.tw_cut = tw_cut.tw_frontend()
         self.en_cut = en.english_cleaners2
         self.id_cut = indo_ipa.g2p
@@ -167,12 +169,17 @@ class textProcess:
         pattern = re.compile(r'^[\u4e00-\u9fa5]+$')
         return bool(pattern.match(text))
 
+    def has_digits(self, input_string):
+        pattern = r'\d'  # 正則表達式匹配任何數字
+        return bool(re.search(pattern, input_string))
+
 class DatasetProcesser:
     def __init__(self, dataset_suffix):
         self.dataset_suffix = dataset_suffix
         self.audioProcss = audioProcess(samplerate=44100)
         self.textProcess = textProcess()
         self.cwd = os.getcwd()
+        # os.system(f'rm {self.cwd}/{dataset_suffix}/*.txt')
         
 
     def get_last_speaker_id(self, filepath):
@@ -205,21 +212,33 @@ class DatasetProcesser:
             folder_files = os.listdir(folder)
             wav_files = [file for file in folder_files if file.endswith('.wav')]
 
-            if len(wav_files) < 5:
+            if len(wav_files) < 2:
                 continue
 
-
-            traing_len = int(len(wav_files)*0.95)
-            test_len = int(traing_len * 0.05)
+            if 'opendataset' in path:
+                traing_len = min(50, len(wav_files))
+                test_len = min(5, len(wav_files) - traing_len)
+            elif len(wav_files) == 3:
+                traing_len = 2
+                test_len = 1
+            else:
+                traing_len = int(len(wav_files)*0.95)
+                test_len = int(traing_len * 0.05)
             random.shuffle(wav_files)
 
             # split train and test set
             train_files = wav_files[:traing_len]
             test_files = wav_files[traing_len:traing_len + test_len]
 
+            print(f'Processing: {folder}')
+            print(f'train_files: {len(train_files)}, test_files: {len(test_files)}')
+
+            if len(train_files) == 2:
+                train_files*=200
+
             if len(test_files) == 0:
                 continue
-
+    
             # write train and test set
             run_list = ['train', 'test']
             for run in run_list:
@@ -228,125 +247,60 @@ class DatasetProcesser:
                     for file in files:
                         if 'trandition_zh' in input_path:
                             txt_file_path = f'{folder}/{file.replace(".wav", ".json")}'
-                            with open(txt_file_path, 'r') as txt:
-                                try:
-                                    txt_content = json.load(txt)['ctl_text']
-                                except:
-                                    continue
-                                txt_content = self.textProcess.tradi_cut.get_phonemes(txt_content)
-                                f.write(
-                                    f'{cwd}/{folder}/{file}|{starting_speaker_id}|TZH|{txt_content}\n'
-                                )
+                            if not os.path.exists(txt_file_path):
+                                with open(txt_file_path.replace(".json", ".txt"), 'r') as txt:
+                                    txt_content = txt.read()
+                                    txt_content = txt_content.strip()
+                                    # if not self.textProcess.check_language(input_str=txt_content):
+                                    #     continue
+                                    txt_content = self.textProcess.tradi_cut_noneCTL.get_phonemes(txt_content)
+                                    f.write(
+                                        f'{cwd}/{folder}/{file}|{starting_speaker_id}|TZH|{txt_content}\n'
+                                    )
+                            else:       
+                                with open(txt_file_path, 'r') as txt:
+                                    try:
+                                        txt_content = json.load(txt)['ctl_text']
+                                    except:
+                                        continue
+                                    txt_content = self.textProcess.tradi_cut.get_phonemes(txt_content)
+                                    f.write(
+                                        f'{cwd}/{folder}/{file}|{starting_speaker_id}|TZH|{txt_content}\n'
+                                    )
                         else:
                             txt_file_path = f'{folder}/{file.replace(".wav", ".txt")}'
+                            if not os.path.exists(txt_file_path):
+                                continue
                             with open(txt_file_path, 'r') as txt:
                                 txt_content = txt.read()
                                 txt_content = txt_content.strip()
-                                if not self.textProcess.check_language(input_str=txt_content):
-                                    continue
-                                if not self.textProcess.contains_chinese(text=txt_content):
-                                    continue
+                                if 'genshin' in path or 'esd' in path:
+                                    if not self.textProcess.contains_only_chinese_and_numbers(txt_content):
+                                        print(f'{txt_content} has number')
+                                        continue
+                                    text, txt_content = self.textProcess.content_punctuation(text=txt_content)
+                                    if not txt_content:
+                                        continue    
+                                        
+                                    wav_file = f'{cwd}/{folder}/{file}'
+                                
+                                    txt_content = txt_content.replace("(","").replace(")","")
+                                    txt_content = txt_content.replace("[","").replace("]","")
+                                else:
+                                    if not self.textProcess.check_language(input_str=txt_content):
+                                        print(f'not chinese: {txt_content}, {cwd}/{folder}/{file}')
+                                        continue
+                                    if not self.textProcess.contains_chinese(text=txt_content):
+                                        print(f'not chinese: {txt_content}, {cwd}/{folder}/{file}')
+                                        continue
                                 result = self.textProcess.beji_cut(word=txt_content)
                                 f.write(
                                     f'{cwd}/{folder}/{file}|{starting_speaker_id}|ZH|{result}\n'
                                 )
-
+                                
                 print(f'writing {run} done, {folder}')
             with open(f'{self.cwd}/{dataset_suffix}/{label}_id.txt', 'a') as f:
                 f.write(f'{starting_speaker_id}|{folder}\n')
-
-    def process_gen(self, path, label):
-        os.chdir(path)
-        cwd = os.getcwd()
-        # Get the starting speaker id from the last line of the val file
-        dataset_suffix = self.dataset_suffix
-        starting_speaker_id = self.get_last_speaker_id(
-            f'{dataset_suffix}/{label}_val.txt')
-
-        for folder in os.listdir():
-            if not os.path.isdir(os.path.join(cwd, folder)):
-                continue
-            input_path = f'{cwd}/{folder}'
-            # chsr(ori= input_path, target=input_path)
-            folder_files = os.listdir(folder)
-
-            wav_files = [file for file in folder_files if file.endswith('.wav')]
-
-            if len(wav_files) < 20:
-                continue
-
-
-            traing_len = int(len(wav_files)*0.95)
-            test_len = int(traing_len * 0.05)
-
-            random.shuffle(wav_files)
-
-            # split train and test set
-            train_files = wav_files[:traing_len]
-            test_files = wav_files[traing_len:traing_len + test_len]
-
-            if len(test_files) == 0:
-                continue
-
-            # write train and test set
-
-            with open(f'{dataset_suffix}/{label}_train.txt', 'a') as f:
-                for file in tqdm.tqdm(train_files):
-
-                    txt_file_path = f'{folder}/{file.replace(".wav", ".txt")}'
-                    with open(txt_file_path, 'r') as txt:
-                        txt_content = txt.read()
-                        txt_content = txt_content.strip()
-                        if not self.textProcess.contains_only_chinese_and_numbers(txt_content):
-                            print(f'{txt_content} has number')
-                            continue
-                        text, txt_content = self.textProcess.content_punctuation(text=txt_content)
-                        if not txt_content:
-                            continue
-                    
-                        wav_file = f'{cwd}/{folder}/{file}'
-                    
-                        txt_content = txt_content.replace("(","").replace(")","")
-                        txt_content = txt_content.replace("[","").replace("]","")
-                        # txt_content = self.textProcess.punctuator.punctuate(wav_file, txt_content)
-                        # txt_content = self.textProcess.beji_cut(word=txt_content)
-                        # result = remove_beji_zh(result)
-                        f.write(
-                            f'{wav_file}|{starting_speaker_id}|ZH|{txt_content}\n'
-                        )
-            print(f'writing train done, {folder}')
-
-            with open(f'{dataset_suffix}/{label}_val.txt', 'a') as f:
-                for file in tqdm.tqdm(test_files):
-                    txt_file_path = f'{folder}/{file.replace(".wav", ".txt")}'
-                    with open(txt_file_path, 'r') as txt:
-                        txt_content = txt.read()
-                        txt_content = txt_content.strip()
-                        if not self.textProcess.contains_only_chinese_and_numbers(txt_content):
-                            print(f'{txt_content} has number')
-                            continue
-                        text, txt_content = self.textProcess.content_punctuation(text=txt_content)
-                        if not txt_content:
-                            continue    
-                            
-                        wav_file = f'{cwd}/{folder}/{file}'
-                    
-                        txt_content = txt_content.replace("(","").replace(")","")
-                        txt_content = txt_content.replace("[","").replace("]","")
-                        # txt_content = self.textProcess.punctuator.punctuate(wav_file, txt_content)
-                        # txt_content = self.textProcess.beji_cut(word=txt_content)
-                        # result = remove_beji_zh(result)
-                        f.write(
-                            f'{wav_file}|{starting_speaker_id}|ZH|{txt_content}\n'
-                        )
-            print(f'writing val done, {folder}')
-
-            with open(f'{dataset_suffix}/{label}_id.txt', 'a') as f:
-                f.write(f'{starting_speaker_id}|{folder}\n')
-
-            starting_speaker_id = self.get_last_speaker_id(
-                f'{dataset_suffix}/{label}_val.txt')
-
 
 
     def process(self, path, label, english_or_not, hakka_or_not):
@@ -394,6 +348,8 @@ class DatasetProcesser:
                     with open(f'{self.cwd}/{dataset_suffix}/{label}_{run}.txt', 'a') as f:
                         if '/tw/' in path or '/en/' in path or '/indonesian/' in path:
                             txt_file_path = f'{input_path}/{file.replace(".wav", ".json")}'
+                        elif '/jp/' in path:
+                            txt_file_path = f'{input_path}/{file}.json'
                         else:
                             txt_file_path = f'{input_path}/{file.replace(".wav", ".txt")}'
                         if not os.path.exists(txt_file_path):
@@ -405,7 +361,10 @@ class DatasetProcesser:
                             with open(txt_file_path, 'r') as txt:
                                 if hakka_or_not:
                                     txt_content = txt.readlines()[-1].strip().lower()
-                                    txt_content = self.textProcess.hakka_frontend.get_phonemes(txt_content)
+                                    if 'hailu' in path:
+                                        txt_content = self.textProcess.hailu_hakka_frontend.get_phonemes(txt_content)
+                                    else:
+                                        txt_content = self.textProcess.sixsian_hakka_frontend.get_phonemes(txt_content)
                                     f.write(
                                         f'{cwd}/{folder}/{file}|{starting_speaker_id}|HAK|{txt_content}\n'
                                     )
@@ -413,7 +372,6 @@ class DatasetProcesser:
                                     if '/tw/' in path:
                                         txt_content = json.load(txt)['tailou']
                                         txt_content, status = self.textProcess.tw_cut.get_phonemes(txt_content)
-                                        txt_content = txt_content.replace("sil", "").strip()
                                         if not status:
                                             continue
                                         f.write(
@@ -433,8 +391,16 @@ class DatasetProcesser:
                                         # txt_content = txt.readlines()[0].strip().lower()
                                         # txt_content = self.textProcess.id_cut(txt_content)
                                         txt_content = json.load(txt)['g2p'].lower()
+                                        if self.textProcess.has_digits(input_string=txt_content):
+                                            continue
                                         f.write(
                                             f'{cwd}/{folder}/{file}|{starting_speaker_id}|ID|{txt_content}\n'
+                                        )
+                                    
+                                    if '/jp/' in path:
+                                        txt_content = json.load(txt)['phonemes'].lower()
+                                        f.write(
+                                            f'{cwd}/{folder}/{file}|{starting_speaker_id}|JP|{txt_content}\n'
                                         )
 
                         else:
@@ -451,24 +417,24 @@ if __name__ == "__main__":
     # path, label = parse_paths()
     # process(path, label)
     corpus_list = [
-        # f'corpus/hakka/corpus',
+        # f'corpus/zh/corpus/other',
+        # f'corpus/zh/corpus/other/for_student',
         f'corpus/hakka/corpus/nycu/Hakka_TTS_four_couties',
+        f'corpus/hakka/corpus/nycu/Hakka_TTS_hailu',
         # f'corpus/en/corpus/Lirbri',    
         # f'corpus/indonesian/corpus',
         # f'corpus/zh/corpus/aidata',
         # f'corpus/zh/corpus/MAGIC',
-        # f'corpus/zh/corpus/other',
-        # f'corpus/zh/corpus/THCHS',
-        # f'corpus/trandition_zh/',
-        # f'corpus/tw/corpus/emotional',
-        # f'corpus/double',
         f'corpus/tw/corpus/neutral',
-        f'corpus/zh/corpus/azure',
-        # f'corpus/zh/corpus/opendataset/MAGIC',
-        f'corpus/en/corpus/vctk/corpus',
-        f'corpus/indonesian/corpus/azure',
-        f'corpus/trandition_zh/azure_synthesis'
-        # f'/mnt/Linux_DATA/synthesis/corpus/22k/corpus/genshin/clean'
+        # f'corpus/zh/corpus/azure',
+        # f'corpus/zh/corpus/opendataset/THCHS',
+        f'corpus/zh/corpus/opendataset/MAGIC',
+        # f'corpus/en/corpus/vctk/corpus',
+        # f'corpus/en/corpus/other/t1_excited',
+        # f'corpus/indonesian/corpus/azure',
+        f'corpus/trandition_zh/azure_synthesis',
+        f'corpus/trandition_zh/dinter/',
+        # f'corpus/genshin/classified',
     ]
 
     dataset_suffix = "dataset"
@@ -502,7 +468,14 @@ if __name__ == "__main__":
                         english_or_not=False,
                         hakka_or_not=False)
             if 'genshin' in corpus_path:
-                dp.process_gen(path=f'{corpus_path}', label="mixed_5")
+                dp.process_zh(path=f'{corpus_path}',
+                    label="mixed_5",
+                    english_or_not=False)
+            if '/jp/' in corpus_path:
+                dp.process(path=f'{corpus_path}',
+                        label="mixed_5",
+                        english_or_not=False,
+                        hakka_or_not=False)
         else:
             dp.process(path=f'{corpus_path}',
                     label="mixed_5",

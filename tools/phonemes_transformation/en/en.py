@@ -101,12 +101,6 @@ def english_cleaners2(text):
 
 
 if __name__ == "__main__":
-    print(english_cleaners("Hello, I'm a test."))
-    print(english_cleaners2("Hello, I'm a test."))
-    print(english_cleaners2("Winners do losers do not want to do."))
-    print(english_cleaners2("No fire without smoke."))
-    print(english_cleaners2("I'm not going to do that."))
-    print(english_cleaners2("Warning, segmentation fault."))
-    print(english_cleaners2("Trying to be better."))
-    print(english_cleaners2("styrofoam"))
-    print(english_cleaners2("dehumidifier"))
+  while(1):
+    text = input("Enter text: ")
+    print(english_cleaners2(text))

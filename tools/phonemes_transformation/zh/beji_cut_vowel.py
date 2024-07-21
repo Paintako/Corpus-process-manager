@@ -79,7 +79,6 @@ def cut_vowel(word: str) -> str:
     return result
 
 if __name__ == "__main__":
-    # d1 eng13 d1 eng13 , u12 b1 iao14 ai14 z1 ao14 k1 in14 j1 e15 l1 !1。
-    result =  cut_vowel("第一次測試國語合成")
-    print(result)
-
+    while(1):
+       sentence = input("Please input a sentence: ")
+       print(cut_vowel(sentence))

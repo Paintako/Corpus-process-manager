@@ -1,29 +1,49 @@
 from whisper_punctuator import punctuator
 import whisper
+import os
+import shutil
+import tqdm
+from cn2an_test import text_normalize
+from opencc import OpenCC
+import re
 
-model = whisper.load_model("base")
+def contains_non_chinese_characters(s):
+    # 匹配任何非中文字符（包括英文字母）
+    english_letter_pattern = re.compile(r'[A-Za-z]')
+    
+    # 搜索字符串中是否包含英文字母
+    match = english_letter_pattern.search(s)
+    
+    return match is not None
 
-# load audio and pad/trim it to fit 30 seconds
-wav_file = '/home/p76111652/Linux_DATA/synthesis/corpus/22k/tools/asr/38_5866_20170916205917.wav'
-audio = whisper.load_audio(wav_file)
-audio = whisper.pad_or_trim(audio)
 
-# make log-Mel spectrogram and move to the same device as the model
-mel = whisper.log_mel_spectrogram(audio).to(model.device)
+def remove_punctuation(text):
+    # 使用正則表達式匹配所有標點符號
+    return re.sub(r'[^\w\s]', '', text)
 
-# detect the spoken language
-_, probs = model.detect_language(mel)
-print(f"Detected language: {max(probs, key=probs.get)}")
-# decode the audio
-options = whisper.DecodingOptions()
-result = whisper.decode(model, mel, options)
 
-# print the recognized text
-print(result.text)
+def asr(wav_file: os.path.abspath, model) -> str:
+    audio = whisper.load_audio(wav_file)
+    audio = whisper.pad_or_trim(audio)
 
-punctuator = punctuator.Punctuator(language="zh", punctuations=",.?", initial_prompt="Hello, everyone.")
-punctuated_text = punctuator.punctuate(
-    wav_file,
-    "打電話給"
-)
-print(punctuated_text) # -> "And do you know what the answer to this question now is? The answer is no. It is not possible to buy a cell phone that doesn't do too much. So"
+    mel = whisper.log_mel_spectrogram(audio).to(model.device)
+
+    _, probs = model.detect_language(mel)
+    language = max(probs, key=probs.get)
+    print(f"Detected language: {language}")
+
+    options = whisper.DecodingOptions(language='zh')
+    result = whisper.decode(model, mel, options)
+    return result.text
+
+if __name__ == "__main__":
+    base_dir = "/home/p76111652/Linux_DATA/synthesis/corpus/22k/tools/asr/vocal_output.wav_10"
+    bad_dir = "./bad"
+    if not os.path.exists(bad_dir):
+        os.mkdir(bad_dir)
+    model = whisper.load_model("tiny")
+    for f in tqdm.tqdm(os.listdir(base_dir)):
+        if f.endswith('.wav'):
+            wav_file = os.path.join(base_dir, f)
+            text = asr(wav_file, model)
+            print(text)

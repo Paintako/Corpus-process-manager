@@ -16,3 +16,6 @@ __pycache__
 *.png
 corpus/
 dataset/
+tools/asr/*
+check_ph.py
+vits_env/

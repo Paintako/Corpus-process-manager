@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
-from ch2ctl import askForService as ch2ctl
+from zh.ch2ctl import askForService as ch2ctl
 from typing import List
 import re
 from opencc import OpenCC
@@ -14,8 +14,7 @@ class Frontend():
                  phone_vocab_path=None,
                  ctlornot=False):
 
-        self.punc = "：，；。？！“”‘’':,;.?!"
-        # self.punc = ""
+        self.punc = list("：，；。？！“”‘’':,;.?!")
         self.ctlornot = ctlornot
         self.g2p_model = g2p_model
         self.vocab_phones = {}
@@ -56,51 +55,42 @@ class Frontend():
         else:
             ctl_text = sentence
         orig_initials, orig_finals = self._cut_vowel(ctl_text)
-
         for c, v in zip(orig_initials, orig_finals):
             if c and c not in self.punc:
                 initials.append(c + '4 ')
-            else:
+            if c and c in self.punc:
                 initials.append(c)
-            finals.append(v[:-1]+'4'+v[-1])
-
+                finals.append('')
+            if v != '':
+                finals.append(v[:-1]+'4'+v[-1])
         return initials, finals
         
     def _g2p(self,
-             sentences: List[str],
+             sentences: str,
              merge_sentences: bool=False) -> List[List[str]]:
         # seg = re.sub('[a-zA-Z]+', '', sentences)
         phones = []
-        seg_cut = [sentences]
-        initials = []
-        finals = []
+        seg_cut = re.split(r'(\[laugh\])', sentences)
         phones_list = []
         for word in seg_cut:
-            sub_initials, sub_finals = self._get_initials_finals(word)    
-            initials.append(sub_initials)
-            finals.append(sub_finals)
-            # assert len(sub_initials) == len(sub_finals) == len(word)
-        initials = sum(initials, [])
-        finals = sum(finals, [])
-        for c, v in zip(initials, finals):
-            # NOTE: post process for pypinyin outputs
-            # we discriminate i, ii and iii
-            if c and c not in self.punc:
-                phones.append(c)
-            if c and c in self.punc:
-                phones.append('sil')
-            if v and v not in self.punc:
-                phones.append(v)
+            if word == '[laugh]':
+                phones.append('[laugh]')
+                phones_list.append(phones)
+                continue
+            if word == '':
+                continue
+            sub_initials, sub_finals = self._get_initials_finals(word)
+            for c, v in zip(sub_initials, sub_finals):
+                # NOTE: post process for pypinyin outputs
+                # we discriminate i, ii and iii
+                if c and c not in self.punc:
+                    phones.append(c)
+                if c and c in self.punc:
+                    phones.append(c)
+                if v and v not in self.punc:
+                    phones.append(v)
 
-        phones_list.append(phones)
-        if merge_sentences:
-            merge_list = sum(phones_list, [])
-            # rm the last 'sil' to avoid the noise at the end
-            # cause in the training data, no 'sil' in the end
-            if merge_list[-1] == 'sil':
-                merge_list = merge_list[:-1]
-            phones_list = []
-            phones_list.append(merge_list)
+            phones_list.append(phones)
         return phones_list
 
 
@@ -114,6 +104,7 @@ class Frontend():
             sentence = sentence.replace("-", "")
             if ',' in sentence:
                 sentence = sentence.replace(",", ", ")
+        print(f'Processing: {sentence}')
         phonemes = self._g2p(
             sentence, merge_sentences=merge_sentences)
         phonemes = phonemes[0]
@@ -129,9 +120,13 @@ class Frontend():
         
 
 if __name__ == "__main__":
+    zh = Frontend(ctlornot=True)
+    i = "tsuoo4 tsciau4 sroou4 srir4 uoo3 i1 srong1 to0 yeen4 uang4"
+    print(zh.get_phonemes(i))
     zh = Frontend(ctlornot=False)
     while(1):
         text = input("Enter a sentence: ")
+        text = text.strip()
         print(zh.get_phonemes(text))
     # text = 'tscioou4 srir4 tsron1 to0 hon3 nan2 uan2 tschyeen2 pu4 toong3'
     # print(zh._get_initials_finals(text))

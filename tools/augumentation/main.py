@@ -48,26 +48,5 @@ def main(input_path):
             t.join()
 
 if __name__ == "__main__":
-    # input_path = "/mnt/Linux_DATA/synthesis/corpus/22k/wavs/zang"
-    # main(input_path)
-    nums = [i for i in range(0,10)]
-    print(len(nums))
-    permutations_list = list(permutations(nums, 2))
-    print(len(permutations_list))
-    per_again = list(permutations(permutations_list, 2))
-    print(len(per_again))
-
-    nums = [i for i in range(0,91)]
-    print(len(nums))
-    permutations_list = list(permutations(nums, 2))
-    print(len(permutations_list))
-
-    # import os
-
-    # base = '/mnt/Linux_DATA/synthesis/corpus/22k/wavs/li'
-    # all = set()
-    # for file in os.listdir(base):
-    #     if file.endswith(".wav"):
-    #         all.add(file)
-        
-    # print(len(all))
+    input_path = "/home/p76111652/Linux_DATA/synthesis/corpus/22k/aangry/very_angry"
+    main(input_path)

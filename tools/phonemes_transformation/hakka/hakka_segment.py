@@ -1,9 +1,15 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+
 from typing import List, Tuple
 import re
+from hakka.ch2hak import askForService
 
 class hakka_frontend():
-    def __init__(self):
+    def __init__(self, language_id: int):
         self.punc = "：，；。？！“”‘’':,;.?!"
+        self.language_id = language_id
         
     def _get_initials_finals(self, sentence: str) -> List[List[str]]:
         initials = []
@@ -13,9 +19,13 @@ class hakka_frontend():
         # print(f'orig_initials = {orig_initials}, orig_finals = {orig_finals}')
         for c, v in zip(orig_initials, orig_finals):
             if c and c not in self.punc:
-                initials.append(f'{c}2 ')
+                initials.append(f'{c}{self.language_id} ')
             else:
                 initials.append(c)
+            if v != '':
+                v = remove_hak(v)
+                v = v.strip()
+                v = f'{v[:-1]}{self.language_id}{v[-1]}'
             finals.append(f'{v} ')
 
         return initials, finals
@@ -90,8 +100,18 @@ def remove_hak(input_content):
 
 
 if __name__ == "__main__":
-    sentence = 'an22 tsoo22 。 sirt28 pau22 mang25 ? sirt28 pau22 le22 。 ng25 ngai25 ki25 。 ng25 koong22 ma22 ke23 ? ng25 he23 ma22 sa25 。 ngai25 he23 a21 lin25 。 an22 kiu22 moo25 khoon23 too22 。 ng25 hoo22 moo25 ?'
-    ha_frontend = hakka_frontend()
-    phonemes = ha_frontend.get_phonemes(sentence)
-    
-    print(phonemes)
+    ha_frontend = hakka_frontend(language_id=3)
+    result = ha_frontend.get_phonemes("gni23 kim28 pu28 gnit28 kam21 kook28 gnioong21 pan28 ? tsrhi25 too21 toong28 thiam21 。")
+    print(result)
+    ha_frontend = hakka_frontend(language_id=2)
+    result = ha_frontend.get_phonemes("gni23 kim28 pu28 gnit28 kam21 kook28 gnioong21 pan28 ? tsrhi25 too21 toong28 thiam21 。")
+    print(result)
+    # while(1):
+    #     text = input("Please input a sentence: ")
+    #     if text == 'exit':
+    #         break
+    #     hakka = askForService(text=text, accent='hedusi', direction='hkji2pin')
+    #     print(f'Original: {text} -> Hakka: {hakka["hakkaTRN"][-2]}')
+    #     ctl = ha_frontend.get_phonemes(hakka['hakkaTRN'][-2])
+    #     print(f'After cut vowel -> {ctl}')
+    #     print('------------------------------------')

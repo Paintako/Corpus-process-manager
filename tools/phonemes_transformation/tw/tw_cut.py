@@ -1,4 +1,11 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+
 from typing import Dict, List, Tuple
+from tw.ch2tl import askForService as ch2tl
+from tw.tw_sandhi import askForService as tw_sandhi
+from tw.tl2ctl import askForService as tl2ctl
 
 class tw_frontend():
     def __init__(self):
@@ -81,16 +88,15 @@ class tw_frontend():
     
 if __name__ == "__main__":
     tw = tw_frontend()
-    text = [
-        "manni2 ti3 au3 piah4 koong1 dlang5 e7 phainn1 ue7",
-        "gua1 i1 kieng1 sciunn3 bo7 kh ah1 h o2 e7 ke3 ti3 ah3",
-        "tscit8 kieng7 tiam2 sci3 sng3 dlang7 thau5 sciu7 tscinn5 e7",
-        "dli1 e7 pak8 too2 nann1 e3 hia2 ninn7 tua3 khieen1",
-        "gua1 tsu3 thau5 tioh8 bo7 scioong7 scin3 i7 e7 ue7",
-        "manni2 ti3 au3 piah4 koong1 dlang5 e7 phainn1 ue7"
-
-    ]
-    for t in text:
-        result = tw.get_phonemes(t)
-        print(result[0])
-    print(tw.get_phonemes("tschieng7 san7 kang2 , sua7 tsciu1"))
+    while(1):
+        print(f'Enter text: ')
+        text = input()
+        tl = ch2tl(text)
+        tl = tl['tailuo']
+        print(f'Taiwanese: {tl}')
+        sandhi = tw_sandhi(tl)
+        print(f'Sandhi: {sandhi}')
+        ctl = tl2ctl(sandhi)
+        print(f'CTL: {ctl}')
+        result, status = tw.get_phonemes(ctl)
+        print(f'Phonemes: {result}')
